@@ -1,5 +1,5 @@
 {
-  "name": "pnpm",
+  "name": "@pkerschbaum/pnpm",
   "description": "Fast, disk space efficient package manager",
   "version": "9.9.0",
   "bin": {
@@ -172,6 +172,7 @@
     "compile": "tsc --build && pnpm run lint --fix && rimraf dist bin/nodes && pnpm run bundle && shx cp -r node-gyp-bin dist/node-gyp-bin && shx cp -r node_modules/@pnpm/tabtab/lib/templates dist/templates && shx cp -r node_modules/ps-list/vendor dist/vendor && shx cp pnpmrc dist/pnpmrc"
   },
   "publishConfig": {
+    "access": "public",
     "tag": "next-9",
     "executableFiles": [
       "./dist/node-gyp-bin/node-gyp",
