@@ -149,9 +149,9 @@ export async function writeLockfiles (
   // in those cases the YAML document can be stringified only once for both files
   // which is more efficient
   if (opts.wantedLockfile === opts.currentLockfile) {
-    const lockfileFilesToWrite = computeLockfileFilesToWrite({ wantedLockfileDir: opts.wantedLockfileDir, completeLockfile: opts.wantedLockfile })
+    const lockfilesToWrite = computeLockfileToWrite({ wantedLockfileDir: opts.wantedLockfileDir, completeLockfile: opts.wantedLockfile })
     await Promise.all([
-      ...lockfileFilesToWrite.map(async lockfileFile => writeFileAtomic(path.join(lockfileFile.lockfileDir, wantedLockfileName), yamlStringify(lockfileFile.lockfileFile))),
+      ...lockfilesToWrite.map(async lockfile => writeFileAtomic(path.join(lockfile.lockfileDir, wantedLockfileName), yamlStringify(convertToLockfileFile(lockfile.lockfile, normalizeOpts)))),
       (async () => {
         if (isEmptyLockfile(opts.wantedLockfile)) {
           await rimraf(currentLockfilePath)
@@ -174,10 +174,10 @@ export async function writeLockfiles (
 
   console.log(`wantedLockfilePath=${wantedLockfilePath}, currentLockfilePath=${currentLockfilePath}`)
 
-  const lockfileFilesToWrite = computeLockfileFilesToWrite({ wantedLockfileDir: opts.wantedLockfileDir, completeLockfile: opts.wantedLockfile })
+  const lockfilesToWrite = computeLockfileToWrite({ wantedLockfileDir: opts.wantedLockfileDir, completeLockfile: opts.wantedLockfile })
 
   await Promise.all([
-    ...lockfileFilesToWrite.map(async lockfileFile => writeFileAtomic(path.join(lockfileFile.lockfileDir, wantedLockfileName), yamlStringify(lockfileFile.lockfileFile))),
+    ...lockfilesToWrite.map(async lockfile => writeFileAtomic(path.join(lockfile.lockfileDir, wantedLockfileName), yamlStringify(convertToLockfileFile(lockfile.lockfile, normalizeOpts)))),
     (async () => {
       if (isEmptyLockfile(opts.wantedLockfile)) {
         await rimraf(currentLockfilePath)
@@ -189,17 +189,16 @@ export async function writeLockfiles (
   ])
 }
 
-function computeLockfileFilesToWrite (
+function computeLockfileToWrite (
   opts: {
     completeLockfile: Lockfile
     wantedLockfileDir: string
   }
-): Array<{ lockfileDir: string, lockfileFile: LockfileFile }> {
+): Array<{ lockfileDir: string, lockfile: Lockfile }> {
   const wantedLockfileForRoot = filterLockfileByImporters(opts.completeLockfile, ['.' as ProjectId], { include: { dependencies: true, devDependencies: true, optionalDependencies: true }, skipped: new Set(), failOnMissingDependencies: true })
-  const wantedLockfileForRootToStringify = convertToLockfileFile(wantedLockfileForRoot, { forceSharedFormat: true })
-  assert(wantedLockfileForRootToStringify.importers)
+  wantedLockfileForRoot.importers = Object.fromEntries(Object.entries(wantedLockfileForRoot.importers).map(([projectId, _snapshot]) => ([projectId as ProjectId, { specifiers: {} }])))
 
-  let projectsLockfiles: Array<{ lockfileDir: string, lockfileFile: LockfileFile }> = []
+  let projectsLockfiles: Array<{ lockfileDir: string, lockfile: Lockfile }> = []
   if (opts.completeLockfile.importers) {
     const projectIdsExcludingRoot = Object.keys(opts.completeLockfile.importers).filter(projectId => projectId !== '.') as ProjectId[]
     projectsLockfiles = projectIdsExcludingRoot.map(projectId => {
@@ -208,31 +207,13 @@ function computeLockfileFilesToWrite (
         ...wantedLockfileForProject,
         importers: Object.fromEntries(Object.entries(wantedLockfileForProject.importers).filter(([projectIdOfEntry]) => projectIdOfEntry === projectId)),
       }
-      const lockfileForProjectToStringify = convertToLockfileFile(wantedLockfileForProject, {
-        forceSharedFormat: true,
-      })
 
       return {
         lockfileDir: path.join(opts.wantedLockfileDir, projectId),
-        lockfileFile: lockfileForProjectToStringify,
+        lockfile: wantedLockfileForProject,
       }
     })
-
-    const completeLockfileFile = convertToLockfileFile(opts.completeLockfile, { forceSharedFormat: true })
-    assert(completeLockfileFile.importers)
-    for (const projectId of (Object.keys(completeLockfileFile.importers) as ProjectId[])) {
-      wantedLockfileForRootToStringify.importers[projectId] = { }
-      const inlineSpecifiersProjectSnapshot = completeLockfileFile.importers[projectId]
-      for (const depField of DEPENDENCIES_FIELDS) {
-        const inlineSpecifiersResolvedDependencies = inlineSpecifiersProjectSnapshot[depField]
-        if (inlineSpecifiersResolvedDependencies) {
-          wantedLockfileForRootToStringify.importers[projectId][depField] = Object.fromEntries(
-            Object.entries(inlineSpecifiersResolvedDependencies)
-              .filter(([_depName, specifierAndResolution]) => specifierAndResolution.specifier.startsWith('workspace:')))
-        }
-      }
-    }
   }
 
-  return [{ lockfileDir: opts.wantedLockfileDir, lockfileFile: wantedLockfileForRootToStringify }, ...projectsLockfiles]
+  return [{ lockfileDir: opts.wantedLockfileDir, lockfile: wantedLockfileForRoot }, ...projectsLockfiles]
 }
