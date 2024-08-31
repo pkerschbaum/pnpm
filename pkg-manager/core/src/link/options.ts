@@ -36,6 +36,7 @@ interface StrictLinkOptions {
   mergeGitBranchLockfiles: boolean
   virtualStoreDirMaxLength: number
   peersSuffixMaxLength: number
+  lockfilePerWorkspacePackage: boolean | undefined
 }
 
 export type LinkOptions =

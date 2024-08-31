@@ -144,6 +144,7 @@ export async function getConfig (opts: {
     hoist: true,
     'hoist-pattern': ['*'],
     'hoist-workspace-packages': true,
+    'lockfile-per-workspace-package': false,
     'ignore-workspace-cycles': false,
     'ignore-workspace-root-check': false,
     'link-workspace-packages': false,

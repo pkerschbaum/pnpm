@@ -136,6 +136,7 @@ export interface Config {
   hoistPattern?: string[]
   publicHoistPattern?: string[] | string
   hoistWorkspacePackages?: boolean
+  lockfilePerWorkspacePackage?: boolean
   useStoreServer?: boolean
   useRunningStoreServer?: boolean
   workspaceConcurrency: number

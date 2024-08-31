@@ -49,6 +49,7 @@ export const types = Object.assign({
   'lockfile-directory': String, // TODO: deprecate
   'lockfile-include-tarball-url': Boolean,
   'lockfile-only': Boolean,
+  'lockfile-per-workspace-package': Boolean,
   loglevel: ['silent', 'error', 'warn', 'info', 'debug'],
   'manage-package-manager-versions': Boolean,
   maxsockets: Number,

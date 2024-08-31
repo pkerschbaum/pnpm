@@ -493,6 +493,7 @@ Note that in CI environments, this setting is enabled by default.`,
               wantedLockfileDir: ctx.lockfileDir,
               useGitBranchLockfile: opts.useGitBranchLockfile,
               mergeGitBranchLockfiles: opts.mergeGitBranchLockfiles,
+              lockfilePerWorkspacePackage: opts.lockfilePerWorkspacePackage,
             })
           }
           return {
@@ -1351,6 +1352,7 @@ const _installInContext: InstallFunction = async (projects, ctx, opts) => {
           currentLockfileDir: ctx.virtualStoreDir,
           wantedLockfile: newLockfile,
           wantedLockfileDir: ctx.lockfileDir,
+          lockfilePerWorkspacePackage: opts.lockfilePerWorkspacePackage,
           ...lockfileOpts,
         })
         : writeCurrentLockfile(ctx.virtualStoreDir, result.currentLockfile),

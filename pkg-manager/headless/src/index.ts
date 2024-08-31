@@ -173,6 +173,7 @@ export interface HeadlessOptions {
   useLockfile?: boolean
   supportedArchitectures?: SupportedArchitectures
   hoistWorkspacePackages?: boolean
+  lockfilePerWorkspacePackage?: boolean
 }
 
 export interface InstallationResultStats {
@@ -625,6 +626,7 @@ export async function headlessInstall (opts: HeadlessOptions): Promise<Installat
         currentLockfileDir: virtualStoreDir,
         wantedLockfile,
         currentLockfile: filteredLockfile,
+        lockfilePerWorkspacePackage: opts.lockfilePerWorkspacePackage,
       })
     } else {
       await writeCurrentLockfile(virtualStoreDir, filteredLockfile)

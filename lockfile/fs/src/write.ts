@@ -34,10 +34,11 @@ export async function writeWantedLockfile (
   opts?: {
     useGitBranchLockfile?: boolean
     mergeGitBranchLockfiles?: boolean
+    lockfilePerWorkspacePackage?: boolean
   }
 ): Promise<void> {
   const wantedLockfileName: string = await getWantedLockfileName(opts)
-  return writeLockfile(wantedLockfileName, pkgPath, wantedLockfile, { lockfilePerWorkspacePackage: true })
+  return writeLockfile(wantedLockfileName, pkgPath, wantedLockfile, { lockfilePerWorkspacePackage: opts?.lockfilePerWorkspacePackage })
 }
 
 export async function writeCurrentLockfile (
@@ -58,7 +59,7 @@ async function writeLockfile (
   pkgPath: string,
   wantedLockfile: Lockfile,
   opts: {
-    lockfilePerWorkspacePackage: boolean
+    lockfilePerWorkspacePackage?: boolean
   }
 ): Promise<void> {
   let lockfilesToWrite: Array<{ lockfileDir: string, lockfile: Lockfile }> = []
@@ -98,6 +99,7 @@ export async function writeLockfiles (
     currentLockfileDir: string
     useGitBranchLockfile?: boolean
     mergeGitBranchLockfiles?: boolean
+    lockfilePerWorkspacePackage?: boolean
   }
 ): Promise<void> {
   const wantedLockfileName: string = await getWantedLockfileName(opts)
@@ -106,13 +108,51 @@ export async function writeLockfiles (
   const normalizeOpts = {
     forceSharedFormat: true,
   }
-  const wantedLockfileToStringify = convertToLockfileFile(opts.wantedLockfile, normalizeOpts)
-  const yamlDoc = yamlStringify(wantedLockfileToStringify)
 
-  // in most cases the `pnpm-lock.yaml` and `node_modules/.pnpm-lock.yaml` are equal
-  // in those cases the YAML document can be stringified only once for both files
-  // which is more efficient
-  if (opts.wantedLockfile === opts.currentLockfile) {
+  const currentLockfileToStringify = convertToLockfileFile(opts.currentLockfile, normalizeOpts)
+  const currentYamlDoc = yamlStringify(currentLockfileToStringify)
+
+  if (!opts.lockfilePerWorkspacePackage) {
+    const wantedLockfilePath = path.join(opts.wantedLockfileDir, wantedLockfileName)
+
+    // in most cases the `pnpm-lock.yaml` and `node_modules/.pnpm-lock.yaml` are equal
+    // in those cases the YAML document can be stringified only once for both files
+    // which is more efficient
+    if (opts.wantedLockfile === opts.currentLockfile) {
+      await Promise.all([
+        writeFileAtomic(wantedLockfilePath, currentYamlDoc),
+        (async () => {
+          if (isEmptyLockfile(opts.wantedLockfile)) {
+            await rimraf(currentLockfilePath)
+          } else {
+            await fs.mkdir(path.dirname(currentLockfilePath), { recursive: true })
+            await writeFileAtomic(currentLockfilePath, currentYamlDoc)
+          }
+        })(),
+      ])
+      return
+    }
+
+    logger.debug({
+      message: `\`${WANTED_LOCKFILE}\` differs from \`${path.relative(opts.wantedLockfileDir, currentLockfilePath)}\``,
+      prefix: opts.wantedLockfileDir,
+    })
+
+    const wantedLockfileToStringify = convertToLockfileFile(opts.wantedLockfile, normalizeOpts)
+    const wantedYamlDoc = yamlStringify(wantedLockfileToStringify)
+
+    await Promise.all([
+      writeFileAtomic(wantedLockfilePath, wantedYamlDoc),
+      (async () => {
+        if (isEmptyLockfile(opts.wantedLockfile)) {
+          await rimraf(currentLockfilePath)
+        } else {
+          await fs.mkdir(path.dirname(currentLockfilePath), { recursive: true })
+          await writeFileAtomic(currentLockfilePath, currentYamlDoc)
+        }
+      })(),
+    ])
+  } else {
     const lockfilesToWrite = computeLockfilesToWrite({ wantedLockfileDir: opts.wantedLockfileDir, completeLockfile: opts.wantedLockfile })
 
     await Promise.all([
@@ -129,41 +169,11 @@ export async function writeLockfiles (
           await rimraf(currentLockfilePath)
         } else {
           await fs.mkdir(path.dirname(currentLockfilePath), { recursive: true })
-          await writeFileAtomic(currentLockfilePath, yamlDoc)
+          await writeFileAtomic(currentLockfilePath, currentYamlDoc)
         }
       })(),
     ])
-    return
   }
-
-  logger.debug({
-    message: `\`${WANTED_LOCKFILE}\` differs from \`${path.relative(opts.wantedLockfileDir, currentLockfilePath)}\``,
-    prefix: opts.wantedLockfileDir,
-  })
-
-  const currentLockfileToStringify = convertToLockfileFile(opts.currentLockfile, normalizeOpts)
-  const currentYamlDoc = yamlStringify(currentLockfileToStringify)
-
-  const lockfilesToWrite = computeLockfilesToWrite({ wantedLockfileDir: opts.wantedLockfileDir, completeLockfile: opts.wantedLockfile })
-
-  await Promise.all([
-    ...lockfilesToWrite.map(
-      async lockfile => {
-        const lockfilePath = path.join(lockfile.lockfileDir, wantedLockfileName)
-        const lockfileToStringify = convertToLockfileFile(lockfile.lockfile, { forceSharedFormat: true })
-        const yamlDoc = yamlStringify(lockfileToStringify)
-        return writeFileAtomic(lockfilePath, yamlDoc)
-      }
-    ),
-    (async () => {
-      if (isEmptyLockfile(opts.wantedLockfile)) {
-        await rimraf(currentLockfilePath)
-      } else {
-        await fs.mkdir(path.dirname(currentLockfilePath), { recursive: true })
-        await writeFileAtomic(currentLockfilePath, currentYamlDoc)
-      }
-    })(),
-  ])
 }
 
 function computeLockfilesToWrite (

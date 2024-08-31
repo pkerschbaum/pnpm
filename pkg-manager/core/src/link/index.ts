@@ -137,7 +137,7 @@ export async function link (
   } else {
     newPkg = opts.manifest
   }
-  const lockfileOpts = { useGitBranchLockfile: opts.useGitBranchLockfile, mergeGitBranchLockfiles: opts.mergeGitBranchLockfiles }
+  const lockfileOpts = { useGitBranchLockfile: opts.useGitBranchLockfile, mergeGitBranchLockfiles: opts.mergeGitBranchLockfiles, lockfilePerWorkspacePackage: opts.lockfilePerWorkspacePackage }
   if (opts.useLockfile) {
     await writeLockfiles({
       currentLockfile: updatedCurrentLockfile,

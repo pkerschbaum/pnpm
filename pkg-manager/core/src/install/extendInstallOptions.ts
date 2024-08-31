@@ -151,6 +151,7 @@ export interface StrictInstallOptions {
 
   supportedArchitectures?: SupportedArchitectures
   hoistWorkspacePackages?: boolean
+  lockfilePerWorkspacePackage?: boolean
   virtualStoreDirMaxLength: number
   peersSuffixMaxLength: number
   prepareExecutionEnv?: PrepareExecutionEnv

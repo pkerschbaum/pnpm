@@ -33,6 +33,7 @@ export function rcOptionsTypes (): Record<string, unknown> {
     'lockfile-dir',
     'lockfile-directory',
     'lockfile-only',
+    'lockfile-per-workspace-package',
     'lockfile',
     'modules-dir',
     'network-concurrency',

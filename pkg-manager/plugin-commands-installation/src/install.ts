@@ -33,6 +33,7 @@ export function rcOptionsTypes (): Record<string, unknown> {
     'lockfile-dir',
     'lockfile-directory',
     'lockfile-only',
+    'lockfile-per-workspace-package',
     'lockfile',
     'merge-git-branch-lockfiles',
     'merge-git-branch-lockfiles-branch-pattern',
@@ -267,6 +268,7 @@ export type InstallCommandOptions = Pick<Config,
 | 'ignorePnpmfile'
 | 'ignoreScripts'
 | 'linkWorkspacePackages'
+| 'lockfilePerWorkspacePackage'
 | 'rawLocalConfig'
 | 'lockfileDir'
 | 'lockfileOnly'
