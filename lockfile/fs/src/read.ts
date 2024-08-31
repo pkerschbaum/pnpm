@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import { promises as fs } from 'fs'
 import path from 'path'
 import util from 'util'
@@ -53,17 +54,16 @@ export async function readWantedLockfileAndAutofixConflicts (
   if (lockfile) {
     const projectIdsExcludingRoot = Object.keys(lockfile.importers).filter(projectId => projectId !== '.') as ProjectId[]
     await Promise.all(projectIdsExcludingRoot.map(async projectId => {
+      assert(lockfile)
       const projectPath = path.join(pkgPath, projectId)
       const resultForProjectImporter = await _readWantedLockfile(projectPath, {
         ...opts,
         autofixMergeConflicts: true,
       })
-      if (!resultForProjectImporter.lockfile) {
-        logger.warn({ message: 'we found a root lockfile but no lockfile per project, should not happen', prefix: process.cwd() })
-        return
+      if (resultForProjectImporter.lockfile) {
+        lockfile = mergeLockfileChanges(lockfile, resultForProjectImporter.lockfile)
+        hadConflicts = hadConflicts || resultForProjectImporter.hadConflicts
       }
-      lockfile = mergeLockfileChanges(lockfile!, resultForProjectImporter.lockfile)
-      hadConflicts = hadConflicts || resultForProjectImporter.hadConflicts
     }))
   }
 
