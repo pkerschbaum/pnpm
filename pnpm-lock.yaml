@@ -2885,6 +2885,9 @@ importers:
       '@pnpm/git-utils':
         specifier: workspace:*
         version: link:../../packages/git-utils
+      '@pnpm/lockfile.filtering':
+        specifier: workspace:*
+        version: link:../filtering
       '@pnpm/lockfile.merger':
         specifier: workspace:*
         version: link:../merger

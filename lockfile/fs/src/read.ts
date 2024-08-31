@@ -43,10 +43,34 @@ export async function readWantedLockfileAndAutofixConflicts (
     lockfile: Lockfile | null
     hadConflicts: boolean
   }> {
-  return _readWantedLockfile(pkgPath, {
+  const resultForRootImporter = await _readWantedLockfile(pkgPath, {
     ...opts,
     autofixMergeConflicts: true,
   })
+
+  let lockfile = resultForRootImporter.lockfile
+  let hadConflicts = resultForRootImporter.hadConflicts
+  if (lockfile) {
+    const projectIdsExcludingRoot = Object.keys(lockfile.importers).filter(projectId => projectId !== '.') as ProjectId[]
+    await Promise.all(projectIdsExcludingRoot.map(async projectId => {
+      const projectPath = path.join(pkgPath, projectId)
+      const resultForProjectImporter = await _readWantedLockfile(projectPath, {
+        ...opts,
+        autofixMergeConflicts: true,
+      })
+      if (!resultForProjectImporter.lockfile) {
+        logger.warn({ message: 'we found a root lockfile but no lockfile per project, should not happen', prefix: process.cwd() })
+        return
+      }
+      lockfile = mergeLockfileChanges(lockfile!, resultForProjectImporter.lockfile)
+      hadConflicts = hadConflicts || resultForProjectImporter.hadConflicts
+    }))
+  }
+
+  return {
+    lockfile,
+    hadConflicts,
+  }
 }
 
 export async function readWantedLockfile (

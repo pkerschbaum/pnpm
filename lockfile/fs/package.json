@@ -55,6 +55,7 @@
     "@pnpm/lockfile.types": "workspace:*",
     "@pnpm/lockfile.utils": "workspace:*",
     "@pnpm/lockfile.merger": "workspace:*",
+    "@pnpm/lockfile.filtering": "workspace:*",
     "@pnpm/types": "workspace:*",
     "@pnpm/util.lex-comparator": "catalog:",
     "@zkochan/rimraf": "catalog:",
